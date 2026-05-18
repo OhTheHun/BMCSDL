@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: BackendService/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__PostgresDb=${Host=pg-dbf00f3-postgres-toandev11.d.aivencloud.com;Port=22991;Database=QLBH;Username=avnadmin;Password=AVNS_kre-SZU7Pjv_g3uddBE;Max Auto Prepare=0;}
+      - JwtConfig__Key=${TTNl2zKjyDboZM2N0rWhgShxaek9GGDhwye1bRM2oV5}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      - POSTGRES_DB=QLBH
+      - POSTGRES_USER=${avnadmin}
+      - POSTGRES_PASSWORD=${AVNS_kre-SZU7Pjv_g3uddBE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres.umvjkvwwmlwjsjqugskl -d QLBH"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_container
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

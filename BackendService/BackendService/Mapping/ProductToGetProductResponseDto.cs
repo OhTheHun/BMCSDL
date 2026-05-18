@@ -1,0 +1,26 @@
+using BackendService.Core.DTOs.DonViTinh;
+using BackendService.Core.DTOs.Product.Responses;
+using BackendService.Model;
+
+namespace BackendService.Mapping
+{
+    public static class ProductToGetProductResponseDto
+    {
+        public static GetProductResponseDto Transform(Product product)
+        {
+            return new GetProductResponseDto
+            {
+                Id = product.Id,
+                ProductName = product.ProductName,
+                Price = product.Price,
+                DiscountPrice = product.DiscountPrice,
+                Image_Url = product.Image_Url,
+                CategoryId = product.CategoryId,
+                DonViTinh = new BaseDonViTinhDto
+                {
+                    Ten = product.DonViTinh?.TenDonViTinh ?? "Không có"
+                },
+            };
+        }
+    }
+}
