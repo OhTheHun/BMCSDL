@@ -1,4 +1,4 @@
-﻿using BackendService.Configuration;
+using BackendService.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -21,6 +21,21 @@ namespace BackendService.Controllers
             {
                 return User?.Identity?.Name ?? "anomynous";
             }
+        }
+
+        protected string GetRealExceptionMessage(Exception ex)
+        {
+            var message = ex.Message;
+            var inner = ex.InnerException;
+            while (inner != null)
+            {
+                if (!string.IsNullOrEmpty(inner.Message))
+                {
+                    message = inner.Message;
+                }
+                inner = inner.InnerException;
+            }
+            return message;
         }
     }
 }

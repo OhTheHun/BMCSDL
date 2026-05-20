@@ -13,7 +13,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.DependencyInjection;
 namespace BackendService.Services
 {
-    public class AuthService(IUserRepository userRepository, IOptions<ConfigOptions> configOptions, IPasswordHasherService passwordHasherService, IEmailTemplateService emailTemplateService, IOtherService otherService, IServiceScopeFactory serviceScopeFactory): IAuthService
+    public class AuthService(IUserRepository userRepository, IOptions<ConfigOptions> configOptions, IPasswordHasherService passwordHasherService, IEmailTemplateService emailTemplateService, IOtherService otherService, IServiceScopeFactory serviceScopeFactory, IHybridCryptographyService hybridCryptographyService): IAuthService
     {
         private readonly IUserRepository _userRepository = userRepository;
         private readonly ConfigOptions _configOptions = configOptions.Value;
@@ -21,6 +21,7 @@ namespace BackendService.Services
         private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
         private readonly IOtherService _otherService = otherService;
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+        private readonly IHybridCryptographyService _hybridCryptographyService = hybridCryptographyService;
 
         public string GenerateToken(User user)
         {
@@ -28,8 +29,11 @@ namespace BackendService.Services
             {
                 // tạo danh sách claim dữ liệu (iat: thời điểm token tạo, Chuyển thời gian sang dạng Unix Timestamp, đảm bảo về lỗi format
                 new(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.UtcNow).ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
-                // tạo token riêng cho role
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Email, user.Email),
+                // tạo token riêng cho role (hỗ trợ cả URI và chuỗi ngắn để tương thích hoàn hảo)
                 new(ClaimTypes.Role, user.Role),
+                new("role", user.Role),
             };
             // tạo khóa ký token
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configOptions.JwtConfig.Key));
@@ -81,7 +85,7 @@ namespace BackendService.Services
 
             // Generate a 6 digit code
             string code = _otherService.GenerateResetPasswordCode();
-            user.ResetPasswordCode = code;
+            user.ResetPasswordCode = _hybridCryptographyService.Encrypt(code);
             user.ResetPasswordExpiryTime = DateTime.UtcNow.AddMinutes(15);
             
             await _userRepository.UpdateUserAsync(user, cancellationToken);
@@ -94,7 +98,8 @@ namespace BackendService.Services
         public async Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request, CancellationToken cancellationToken = default)
         {
             var user = await _userRepository.GetUserByEmailAsync(request.Email, cancellationToken);
-            if (user == null || user.ResetPasswordCode != request.Code)
+            var decryptedCode = _hybridCryptographyService.Decrypt(user?.ResetPasswordCode);
+            if (user == null || decryptedCode != request.Code)
             {
                 return false;
             }
@@ -138,20 +143,20 @@ namespace BackendService.Services
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.PostgresDbContext>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.AppDbContext>();
                     var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-                    await emailService.SendAsync(receiver, subject, htmlBody, null, cancellationToken);
+                    await emailService.SendAsync(receiver, subject, htmlBody, null, CancellationToken.None);
                     
                     emailHistory.EmailStatus = (int)Model.Enums.EmailStatus.Success;
-                    await dbContext.EmailHistories.AddAsync(emailHistory, cancellationToken);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await dbContext.EmailHistories.AddAsync(emailHistory, CancellationToken.None);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
                 }
             }).ContinueWith(async t =>
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.PostgresDbContext>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.AppDbContext>();
                     
                     emailHistory.EmailStatus = (int)Model.Enums.EmailStatus.Fail;
                     if (t.Exception != null)
@@ -160,8 +165,8 @@ namespace BackendService.Services
                         emailHistory.Exceptions = ex.Message;
                     }
                     
-                    await dbContext.EmailHistories.AddAsync(emailHistory, cancellationToken);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await dbContext.EmailHistories.AddAsync(emailHistory, CancellationToken.None);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
         }

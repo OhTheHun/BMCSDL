@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class CategoryRepository(PostgresDbContext context) : ICategoryRepository
+    public class CategoryRepository(AppDbContext context) : ICategoryRepository
     {
-        private readonly PostgresDbContext _context = context;
+        private readonly AppDbContext _context = context;
 
         public async Task<List<Category>> GetAllAsync(string? keyword, CancellationToken cancellationToken)
         {
@@ -28,25 +28,42 @@ namespace BackendService.Data
 
         public async Task AddAsync(Category category, CancellationToken cancellationToken)
         {
-            await _context.Categories.AddAsync(category, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Add_Category 
+                    @CategoryName = {0}, 
+                    @Description = {1}, 
+                    @ParentId = {2}, 
+                    @CreatedBy = {3}";
+
+            await _context.Database.ExecuteSqlRawAsync(sql, 
+                category.TenDanhMuc, 
+                category.Description, 
+                category.ParentId, 
+                category.CreatedBy ?? "system");
         }
 
         public async Task UpdateAsync(Category category, CancellationToken cancellationToken)
         {
-            _context.Categories.Update(category);
-            await _context.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Update_Category 
+                    @Id = {0},
+                    @CategoryName = {1}, 
+                    @Description = {2}, 
+                    @ParentId = {3}, 
+                    @UpdatedBy = {4}";
+
+            await _context.Database.ExecuteSqlRawAsync(sql, 
+                category.Id,
+                category.TenDanhMuc, 
+                category.Description, 
+                category.ParentId, 
+                category.UpdatedBy ?? "system");
         }
 
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
-            var category = await _context.Categories.FindAsync(id, cancellationToken);
-            if (category != null)
-            {
-                category.DeleteFlag = true;
-                category.UpdatedTime = DateTime.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
+            string sql = @"EXEC SP_Delete_Category @Id = {0}";
+            await _context.Database.ExecuteSqlRawAsync(sql, id);
         }
     }
 }

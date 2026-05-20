@@ -5,15 +5,45 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class ImportRepository(PostgresDbContext dbContext) : IImportRepository
+    public class ImportRepository(AppDbContext dbContext) : IImportRepository
     {
-        private readonly PostgresDbContext _dbContext = dbContext;
+        private readonly AppDbContext _dbContext = dbContext;
 
         public async Task<Import> CreateImportAsync(Import import, List<ImportDetail> details, CancellationToken cancellationToken)
         {
-            await _dbContext.Imports.AddAsync(import, cancellationToken);
-            await _dbContext.ImportDetails.AddRangeAsync(details, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            string sqlImport = @"
+                EXEC SP_Create_Import 
+                    @Id = {0},
+                    @Code = {1}, 
+                    @TotalAmount = {2}, 
+                    @Note = {3}, 
+                    @CreatedBy = {4}";
+
+            await _dbContext.Database.ExecuteSqlRawAsync(sqlImport, 
+                import.Id,
+                import.Code, 
+                import.TotalAmount, 
+                import.Note ?? string.Empty, 
+                import.CreatedBy ?? "system");
+
+            foreach (var detail in details)
+            {
+                string sqlDetail = @"
+                    EXEC SP_Add_Import_Detail 
+                        @ImportId = {0}, 
+                        @ProductId = {1}, 
+                        @Quantity = {2}, 
+                        @Cost = {3}, 
+                        @CreatedBy = {4}";
+
+                await _dbContext.Database.ExecuteSqlRawAsync(sqlDetail, 
+                    detail.ReceiptId, 
+                    detail.ProductId, 
+                    detail.Quantity, 
+                    detail.ImportPrice, 
+                    detail.CreatedBy ?? "system");
+            }
+
             return import;
         }
 

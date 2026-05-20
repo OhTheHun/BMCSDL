@@ -72,7 +72,7 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.ToString() });
             }
         }
 

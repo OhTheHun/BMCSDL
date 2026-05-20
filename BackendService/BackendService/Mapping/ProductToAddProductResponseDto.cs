@@ -1,4 +1,4 @@
-﻿using BackendService.Core.DTOs.Product.Responses;
+using BackendService.Core.DTOs.Product.Responses;
 using BackendService.Model;
 
 namespace BackendService.Mapping

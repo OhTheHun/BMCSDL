@@ -250,20 +250,20 @@ namespace BackendService.Services
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.PostgresDbContext>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.AppDbContext>();
                     var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-                    await emailService.SendAsync(receiver, subject, htmlBody, null, cancellationToken);
+                    await emailService.SendAsync(receiver, subject, htmlBody, null, CancellationToken.None);
                     
                     emailHistory.EmailStatus = (int)Model.Enums.EmailStatus.Success;
-                    await dbContext.EmailHistories.AddAsync(emailHistory, cancellationToken);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await dbContext.EmailHistories.AddAsync(emailHistory, CancellationToken.None);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
                 }
             }).ContinueWith(async t =>
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.PostgresDbContext>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<BackendService.Data.DataContext.AppDbContext>();
                     
                     emailHistory.EmailStatus = (int)Model.Enums.EmailStatus.Fail;
                     if (t.Exception != null)
@@ -272,8 +272,8 @@ namespace BackendService.Services
                         emailHistory.Exceptions = ex.Message;
                     }
                     
-                    await dbContext.EmailHistories.AddAsync(emailHistory, cancellationToken);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await dbContext.EmailHistories.AddAsync(emailHistory, CancellationToken.None);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
         }

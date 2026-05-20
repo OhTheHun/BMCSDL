@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class InvoiceRepository(PostgresDbContext context) : IInvoiceRepository
+    public class InvoiceRepository(AppDbContext context) : IInvoiceRepository
     {
-        private readonly PostgresDbContext _context = context;
+        private readonly AppDbContext _context = context;
 
         public async Task<List<Invoice>> GetAllInvoicesAsync(CancellationToken cancellationToken)
         {
@@ -45,21 +45,67 @@ namespace BackendService.Data
 
         public async Task UpdateInvoiceAsync(Invoice invoice, CancellationToken cancellationToken)
         {
-            _context.Invoices.Update(invoice);
-            await _context.SaveChangesAsync(cancellationToken);
+            if (invoice.Status == Model.Enums.InvoiceEnum.Canceled)
+            {
+                string sqlCancel = @"EXEC SP_Cancel_Order @InvoiceId = {0}, @UpdatedBy = {1}";
+                await _context.Database.ExecuteSqlRawAsync(sqlCancel, invoice.Id, invoice.UpdatedBy ?? "system");
+            }
+            else
+            {
+                string sql = @"
+                    EXEC SP_Update_Invoice_Status 
+                        @InvoiceId = {0}, 
+                        @NewStatus = {1}, 
+                        @UpdatedBy = {2}";
+
+                await _context.Database.ExecuteSqlRawAsync(sql, 
+                    invoice.Id, 
+                    (int)invoice.Status, 
+                    invoice.UpdatedBy ?? "system");
+            }
         }
 
         public async Task<Invoice> CreateInvoiceAsync(Invoice invoice, CancellationToken cancellationToken)
         {
-            _context.Invoices.Add(invoice);
-            await _context.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Create_Invoice 
+                    @Id = {0},
+                    @CustomerId = {1}, 
+                    @Code = {2}, 
+                    @PaymentMethod = {3}, 
+                    @TotalAmount = {4}, 
+                    @CreatedBy = {5}";
+
+            await _context.Database.ExecuteSqlRawAsync(sql, 
+                invoice.Id,
+                invoice.CustomerId, 
+                invoice.Code, 
+                invoice.PaymentMethod, 
+                invoice.TotalAmount, 
+                invoice.CreatedBy ?? "system");
+
             return invoice;
         }
 
         public async Task<InvoiceItem[]> CreateListInvoiceItemAsync(InvoiceItem[] invoiceItems, CancellationToken cancellationToken)
         {
-            _context.InvoiceItems.AddRange(invoiceItems);
-            await _context.SaveChangesAsync(cancellationToken);
+            foreach (var item in invoiceItems)
+            {
+                string sql = @"
+                    EXEC SP_Add_Invoice_Item 
+                        @InvoiceId = {0}, 
+                        @ProductId = {1}, 
+                        @Quantity = {2}, 
+                        @Price = {3}, 
+                        @CreatedBy = {4}";
+
+                await _context.Database.ExecuteSqlRawAsync(sql, 
+                    item.InvoiceId, 
+                    item.ProductId, 
+                    item.Quantity, 
+                    item.Total, 
+                    item.CreatedBy ?? "system");
+            }
             return invoiceItems;
         }
 

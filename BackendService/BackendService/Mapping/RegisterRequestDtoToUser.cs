@@ -1,4 +1,4 @@
-﻿using BackendService.Constants;
+using BackendService.Constants;
 using BackendService.Core.DTOs.User.Requests;
 using BackendService.Model;
 

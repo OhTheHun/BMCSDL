@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using BackendService.Core.DTOs.Product.Requests;
 
 public class AddProductRequestDtoValidator : AbstractValidator<AddProductRequestDto>
@@ -7,22 +7,22 @@ public class AddProductRequestDtoValidator : AbstractValidator<AddProductRequest
     {
         // ProductName
         RuleFor(x => x.ProductName)
-            .NotEmpty().WithMessage("Tên sản phẩm không được để trống")
-            .MaximumLength(255).WithMessage("Tên sản phẩm tối đa 255 ký tự");
+            .NotEmpty().WithMessage("T�n s?n ph?m kh�ng du?c d? tr?ng")
+            .MaximumLength(255).WithMessage("T�n s?n ph?m t?i da 255 k� t?");
         RuleFor(x => x.CategoryId)
-            .NotEmpty().WithMessage("CategoryId không hợp lệ");
+            .NotEmpty().WithMessage("CategoryId kh�ng h?p l?");
 
         RuleFor(x => x.SupplierId)
-            .NotEmpty().WithMessage("SupplierId không hợp lệ");
+            .NotEmpty().WithMessage("SupplierId kh�ng h?p l?");
 
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Giá bán phải lớn hơn 0");
+            .GreaterThan(0).WithMessage("Gi� b�n ph?i l?n hon 0");
         RuleFor(x => x.Cost)
-            .GreaterThanOrEqualTo(0).WithMessage("Giá nhập không được âm");
+            .GreaterThanOrEqualTo(0).WithMessage("Gi� nh?p kh�ng du?c �m");
         RuleFor(x => x.DiscountPrice)
             .LessThan(x => x.Price)
-            .WithMessage("Giá khuyến mãi không hợp lệ");
+            .WithMessage("Gi� khuy?n m�i kh�ng h?p l?");
         RuleFor(x => x.Description)
-            .MaximumLength(1000).WithMessage("Mô tả tối đa 1000 ký tự");
+            .MaximumLength(1000).WithMessage("M� t? t?i da 1000 k� t?");
     }
 }

@@ -6,6 +6,13 @@ namespace BackendService.Configuration
         public List<string> AllowedOrigins { get; set; } = [];
         public JwtConfigOptions JwtConfig { get; set; } = new JwtConfigOptions();
         public EmailOptions EmailOptions { get; set; } = new EmailOptions();
+        public AsymmetricKeyOptions AsymmetricKeys { get; set; } = new AsymmetricKeyOptions();
+    }
+
+    public class AsymmetricKeyOptions
+    {
+        public string PublicKey { get; set; } = string.Empty;
+        public string PrivateKey { get; set; } = string.Empty;
     }
 
     public class EmailOptions

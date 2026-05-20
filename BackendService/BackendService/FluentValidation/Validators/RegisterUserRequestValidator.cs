@@ -1,4 +1,4 @@
-﻿using BackendService.Core.DTOs.User.Requests;
+using BackendService.Core.DTOs.User.Requests;
 using FluentValidation;
 
 namespace BackendService.FluentValidation.Validators

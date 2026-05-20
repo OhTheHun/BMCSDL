@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class InventoryRepository(PostgresDbContext context) : IInventoryRepository
+    public class InventoryRepository(AppDbContext context) : IInventoryRepository
     {
-        private readonly PostgresDbContext _context = context;
+        private readonly AppDbContext _context = context;
 
         public async Task<Inventory?> GetByProductIdAsync(Guid productId, CancellationToken cancellationToken)
         {

@@ -1,4 +1,4 @@
-﻿using BackendService.Model.Enums;
+using BackendService.Model.Enums;
 using BeeExamPro.BackendService.Model.Common;
 using System;
 using System.Collections.Generic;

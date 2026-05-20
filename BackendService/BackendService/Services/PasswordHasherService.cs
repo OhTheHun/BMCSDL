@@ -1,4 +1,4 @@
-﻿using BackendService.Services.Interface;
+using BackendService.Services.Interface;
 using System.Security.Cryptography;
 
 namespace BackendService.Services
@@ -20,13 +20,44 @@ namespace BackendService.Services
 
         public bool VerifyPassword(string password, string passwordHash)
         {
-            string[] parts = passwordHash.Split('-');
-            byte[] hash = Convert.FromHexString(parts[0]);
-            byte[] salt = Convert.FromHexString(parts[1]);
+            if (string.IsNullOrWhiteSpace(passwordHash))
+            {
+                return false;
+            }
 
-            byte[] inputHash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, AlgorithmName, HashSize);
+            // Check if it is a BCrypt hash
+            if (passwordHash.StartsWith("$2a$") || passwordHash.StartsWith("$2b$") || passwordHash.StartsWith("$2y$"))
+            {
+                try
+                {
+                    return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
 
-            return CryptographicOperations.FixedTimeEquals(hash, inputHash);
+            // Fallback to PBKDF2
+            try
+            {
+                string[] parts = passwordHash.Split('-');
+                if (parts.Length != 2)
+                {
+                    return false;
+                }
+
+                byte[] hash = Convert.FromHexString(parts[0]);
+                byte[] salt = Convert.FromHexString(parts[1]);
+
+                byte[] inputHash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, AlgorithmName, HashSize);
+
+                return CryptographicOperations.FixedTimeEquals(hash, inputHash);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

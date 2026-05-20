@@ -44,28 +44,9 @@ namespace BackendService.Services
                 throw new KeyNotFoundException("Employee not found");
             }
 
-            userInDb.FullName = request.FullName;
-            userInDb.Phone = request.Phone;
-            userInDb.Address = request.Address;
-            userInDb.Role = request.Role;
-            userInDb.IsActive = request.IsActive;
-            userInDb.UpdatedBy = actor;
-            userInDb.UpdatedTime = DateTime.UtcNow;
+            var (updatedUser, profile) = UpdateEmployeeMapper.Transform(request, userInDb, actor);
 
-            var profile = new EmployeeProfile
-            {
-                Id = Guid.NewGuid(),
-                UserId = request.Id,
-                Date = request.Birthday,
-                Identify = request.Identify,
-                Salary = request.Salary,
-                CreatedBy = actor,
-                CreatedTime = DateTime.UtcNow,
-                UpdatedBy = actor,
-                UpdatedTime = DateTime.UtcNow
-            };
-
-            await _userRepository.UpdateEmployeeAsync(userInDb, profile, cancellationToken);
+            await _userRepository.UpdateEmployeeAsync(updatedUser, profile, cancellationToken);
         }
 
         public async Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken)

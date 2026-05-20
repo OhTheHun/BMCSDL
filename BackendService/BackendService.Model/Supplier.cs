@@ -11,12 +11,12 @@ namespace BackendService.Model
     public class Supplier: BaseEntity
     {
         public string SupplierName { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string TaxCode { get; set; } = string.Empty;
-        public string Address { get; set; } = string.Empty;
-        public string ContactName { get; set; } = string.Empty;
-        public string Field { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public string? TaxCode { get; set; }
+        public string? Address { get; set; }
+        public string? ContactName { get; set; }
+        public string? Field { get; set; }
         public SupplierEnum Status { get; set; }
     }
 }

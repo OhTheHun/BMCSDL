@@ -10,7 +10,7 @@ namespace BackendService.Mapping
             return new GetAdminProductResponseDto
             {
                 Id = product.Id,
-                ImageUrl = product.Image_Url,
+                ImageUrl = product.Image_Url ?? string.Empty,
                 ProductName = product.ProductName,
                 SKU = product.SKU,
                 CategoryId = product.CategoryId,

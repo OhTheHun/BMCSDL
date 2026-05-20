@@ -1,4 +1,4 @@
-﻿namespace BackendService.Constants
+namespace BackendService.Constants
 {
     public static class ConstantValue
     {

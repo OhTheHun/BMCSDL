@@ -1,4 +1,4 @@
-﻿using BackendService.Core.DTOs.Invoice.Requests;
+using BackendService.Core.DTOs.Invoice.Requests;
 using FluentValidation;
 
 namespace BackendService.FluentValidation.Validators

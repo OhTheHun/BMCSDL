@@ -5,41 +5,74 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class SupplierRepository(PostgresDbContext context) : ISupplierRepository
+    public class SupplierRepository(AppDbContext context) : ISupplierRepository
     {
-        private readonly PostgresDbContext _context = context;
+        private readonly AppDbContext _context = context;
 
         public async Task<List<Supplier>> GetAllAsync(CancellationToken cancellationToken)
         {
-            return await _context.Suppliers.Where(s => !s.DeleteFlag).ToListAsync(cancellationToken);
+            var list = await _context.Suppliers
+                .FromSqlRaw("EXEC sp_Supplier_Decrypt_Data")
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+            return list.Where(s => !s.DeleteFlag).ToList();
         }
 
         public async Task<Supplier?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            return await _context.Suppliers.FirstOrDefaultAsync(s => s.Id == id && !s.DeleteFlag, cancellationToken);
+            var list = await _context.Suppliers
+                .FromSqlRaw("EXEC sp_Supplier_Decrypt_Data @SupplierId = {0}", id)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+            return list.FirstOrDefault();
         }
 
         public async Task AddAsync(Supplier supplier, CancellationToken cancellationToken)
         {
-            await _context.Suppliers.AddAsync(supplier, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Add_Supplier 
+                    @SupplierName = {0}, 
+                    @Email = {1}, 
+                    @PhoneNumber = {2}, 
+                    @TaxCode = {3}, 
+                    @Address = {4}, 
+                    @CreatedBy = {5}";
+
+            await _context.Database.ExecuteSqlRawAsync(sql, 
+                supplier.SupplierName, 
+                supplier.Email, 
+                supplier.PhoneNumber, 
+                supplier.TaxCode, 
+                supplier.Address, 
+                supplier.CreatedBy ?? "system");
         }
 
         public async Task UpdateAsync(Supplier supplier, CancellationToken cancellationToken)
         {
-            _context.Suppliers.Update(supplier);
-            await _context.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Update_Supplier 
+                    @Id = {0},
+                    @SupplierName = {1}, 
+                    @Email = {2}, 
+                    @PhoneNumber = {3}, 
+                    @TaxCode = {4}, 
+                    @Address = {5}, 
+                    @UpdatedBy = {6}";
+
+            await _context.Database.ExecuteSqlRawAsync(sql, 
+                supplier.Id,
+                supplier.SupplierName, 
+                supplier.Email, 
+                supplier.PhoneNumber, 
+                supplier.TaxCode, 
+                supplier.Address, 
+                supplier.UpdatedBy ?? "system");
         }
 
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
-            var supplier = await _context.Suppliers.FindAsync(id, cancellationToken);
-            if (supplier != null)
-            {
-                supplier.DeleteFlag = true;
-                supplier.UpdatedTime = DateTime.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
+            string sql = @"EXEC SP_Delete_Supplier @Id = {0}";
+            await _context.Database.ExecuteSqlRawAsync(sql, id);
         }
     }
 }

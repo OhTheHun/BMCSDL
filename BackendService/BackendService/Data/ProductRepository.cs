@@ -8,16 +8,47 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace BackendService.Data
 {
-    public class ProductRepository(PostgresDbContext dbContext) : IProductRepository
+    public class ProductRepository(AppDbContext dbContext) : IProductRepository
     {
-        private readonly PostgresDbContext _dbContext = dbContext;
+        private readonly AppDbContext _dbContext = dbContext;
 
         public async Task<Product> CreateAsync(Product product, CancellationToken cancellationToken)
         {
-            await _dbContext.AddAsync(product);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return product;
+            if (product.Id == Guid.Empty)
+            {
+                product.Id = Guid.NewGuid();
+            }
 
+            string sql = @"
+                EXEC SP_Add_Product 
+                    @Id = {0},
+                    @CategoryId = {1}, 
+                    @ProductName = {2}, 
+                    @Price = {3}, 
+                    @DiscountPrice = {4}, 
+                    @Cost = {5}, 
+                    @Description = {6}, 
+                    @ImageUrl = {7}, 
+                    @SupplierId = {8}, 
+                    @CreatedBy = {9},
+                    @DonViTinhId = {10},
+                    @SKU = {11}";
+
+            await _dbContext.Database.ExecuteSqlRawAsync(sql, 
+                product.Id,
+                product.CategoryId, 
+                product.ProductName, 
+                product.Price, 
+                product.DiscountPrice, 
+                product.Cost, 
+                product.Description, 
+                product.Image_Url, 
+                product.SupplierId, 
+                product.CreatedBy ?? "system",
+                product.DonViTinhId,
+                product.SKU);
+
+            return product;
         }
 
         public async Task<Product[]> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken)
@@ -91,21 +122,44 @@ namespace BackendService.Data
 
         public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken)
         {
-            _dbContext.Products.Update(product);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            string sql = @"
+                EXEC SP_Update_Product 
+                    @Id = {0},
+                    @CategoryId = {1}, 
+                    @SupplierId = {2}, 
+                    @ProductName = {3}, 
+                    @Price = {4}, 
+                    @DiscountPrice = {5}, 
+                    @Cost = {6}, 
+                    @Description = {7}, 
+                    @ImageUrl = {8}, 
+                    @Status = {9},
+                    @UpdatedBy = {10},
+                    @DonViTinhId = {11},
+                    @SKU = {12}";
+
+            await _dbContext.Database.ExecuteSqlRawAsync(sql, 
+                product.Id,
+                product.CategoryId, 
+                product.SupplierId, 
+                product.ProductName, 
+                product.Price, 
+                product.DiscountPrice, 
+                product.Cost, 
+                product.Description, 
+                product.Image_Url, 
+                (int)product.Status,
+                product.UpdatedBy ?? "system",
+                product.DonViTinhId,
+                product.SKU);
+
             return product;
         }
 
         public async Task SoftDeleteAsync(Guid productId, string actor, CancellationToken cancellationToken)
         {
-            var product = await _dbContext.Products.FindAsync(new object[] { productId }, cancellationToken);
-            if (product != null)
-            {
-                product.DeleteFlag = true;
-                product.UpdatedTime = DateTime.UtcNow;
-                product.UpdatedBy = actor;
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
+            string sql = @"EXEC SP_Delete_Product @Id = {0}";
+            await _dbContext.Database.ExecuteSqlRawAsync(sql, productId);
         }
     };
 }

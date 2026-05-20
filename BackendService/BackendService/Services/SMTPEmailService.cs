@@ -17,7 +17,7 @@ namespace BackendService.Services
     public class SMTPEmailService : IEmailService
     {
         private readonly ConfigOptions _configOptions;
-        private readonly PostgresDbContext _dbContext;
+        private readonly AppDbContext _dbContext;
 
         public SMTPEmailService(IOptions<ConfigOptions> configOptions)
         {

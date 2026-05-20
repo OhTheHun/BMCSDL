@@ -1,4 +1,4 @@
-﻿namespace BackendService.Configuration
+namespace BackendService.Configuration
 {
     public class JwtConfigOptions
     {

@@ -3,6 +3,7 @@ using BackendService.Core.DTOs.Category.Requests;
 using BackendService.Core.DTOs.Category.Responses;
 using BackendService.Services.Interface;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -10,6 +11,7 @@ namespace BackendService.Controllers
 {
     [Route("api/category")]
     [ApiController]
+    [Authorize]
     public class CategoryController(
         IOptions<ConfigOptions> options, 
         ICategoryService categoryService, 
@@ -21,6 +23,7 @@ namespace BackendService.Controllers
         private readonly IValidator<UpdateCategoryRequestDto> _updateValidator = updateValidator;
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<List<CategoryResponseDto>>> GetAllAsync([FromQuery] string? keyword, CancellationToken cancellationToken)
         {
             try
@@ -30,11 +33,12 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = GetRealExceptionMessage(ex) });
             }
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<CategoryResponseDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             try
@@ -45,11 +49,12 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = GetRealExceptionMessage(ex) });
             }
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,WareHouseManager,Seller")]
         public async Task<ActionResult> CreateAsync([FromBody] CreateCategoryRequestDto request, CancellationToken cancellationToken)
         {
             try
@@ -65,11 +70,12 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = GetRealExceptionMessage(ex) });
             }
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin,WareHouseManager")]
         public async Task<ActionResult> UpdateAsync([FromBody] UpdateCategoryRequestDto request, CancellationToken cancellationToken)
         {
             try
@@ -85,11 +91,12 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = GetRealExceptionMessage(ex) });
             }
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,WareHouseManager")]
         public async Task<ActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
             try
@@ -99,7 +106,7 @@ namespace BackendService.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = GetRealExceptionMessage(ex) });
             }
         }
     }

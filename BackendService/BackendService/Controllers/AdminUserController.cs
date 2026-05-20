@@ -3,6 +3,7 @@ using BackendService.Core.DTOs.User.Requests;
 using BackendService.Core.DTOs.User.Responses;
 using BackendService.Services.Interface;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System;

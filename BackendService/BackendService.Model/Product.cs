@@ -14,7 +14,7 @@ namespace BackendService.Model
         public decimal Cost { get; set; }
         public string SKU { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string Image_Url { get; set; } = string.Empty;
+        public string? Image_Url { get; set; }
         public ProductEnum Status { get; set; }
         public DonViTinh? DonViTinh { get; set; }
         public Category? Category { get; set; }

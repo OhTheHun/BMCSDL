@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackendService.Data
 {
-    public class DonViTinhRepository(PostgresDbContext dbContext) : IDonViTinhRepository
+    public class DonViTinhRepository(AppDbContext dbContext) : IDonViTinhRepository
     {
-        private readonly PostgresDbContext _dbContext = dbContext;
+        private readonly AppDbContext _dbContext = dbContext;
 
         public async Task<DonViTinh[]> GetAllAsync(CancellationToken cancellationToken)
         {

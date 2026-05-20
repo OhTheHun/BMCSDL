@@ -60,7 +60,6 @@ namespace BackendService.Controllers
 
         }
         [HttpGet("list")]
-        [Authorize(Roles = $"{ConstantValue.UserRole.Admin}")]
         public async Task<ActionResult<GetUserByIdResponseDto[]>> GetAllUsersAsync([FromQuery] string? keyword, [FromQuery] string? roles, CancellationToken cancellationToken)
         {
             try

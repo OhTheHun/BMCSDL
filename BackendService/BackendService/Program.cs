@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Npgsql;
+using Microsoft.Data.SqlClient;
 using Serilog;
 using System.Security.Claims;
 using System.Text;
@@ -43,18 +43,62 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddTransient<System.Data.IDbConnection>(sp =>
-    new NpgsqlConnection(builder.Configuration.GetConnectionString("PostgresDb")));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<DbSessionContextInterceptor>();
 
-// builder.Services.AddDbContext<PostgresDbContext>(options =>
-//     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresDb"),
-//         npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
-//             maxRetryCount: 5,
-//             maxRetryDelay: TimeSpan.FromSeconds(30),
-//             errorCodesToAdd: null))
-// );
-builder.Services.AddDbContext<PostgresDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresDb")));
+builder.Services.AddTransient<System.Data.IDbConnection>(sp =>
+{
+    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var user = httpContextAccessor.HttpContext?.User;
+    var role = user?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+    string connStringName = "SqlServerDb";
+    if (!string.IsNullOrEmpty(role))
+    {
+        switch (role)
+        {
+            case "Admin": connStringName = "SqlServerDb_Admin"; break;
+            case "HRManager": connStringName = "SqlServerDb_HR"; break;
+            case "WareHouseManager": connStringName = "SqlServerDb_Warehouse"; break;
+            case "Seller": connStringName = "SqlServerDb_Seller"; break;
+            case "Customer": connStringName = "SqlServerDb_Customer"; break;
+        }
+    }
+    var connectionString = configuration.GetConnectionString(connStringName) 
+                           ?? configuration.GetConnectionString("SqlServerDb");
+    return new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+});
+
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var interceptor = serviceProvider.GetRequiredService<DbSessionContextInterceptor>();
+    var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+    var httpContext = httpContextAccessor.HttpContext;
+    var user = httpContext?.User;
+    var role = user?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+    string connStringName = "SqlServerDb";
+    if (!string.IsNullOrEmpty(role))
+    {
+        switch (role)
+        {
+            case "Admin": connStringName = "SqlServerDb_Admin"; break;
+            case "HRManager": connStringName = "SqlServerDb_HR"; break;
+            case "WareHouseManager": connStringName = "SqlServerDb_Warehouse"; break;
+            case "Seller": connStringName = "SqlServerDb_Seller"; break;
+            case "Customer": connStringName = "SqlServerDb_Customer"; break;
+        }
+    }
+
+    var connectionString = configuration.GetConnectionString(connStringName) 
+                           ?? configuration.GetConnectionString("SqlServerDb");
+
+    options.UseSqlServer(connectionString)
+           .AddInterceptors(interceptor);
+});
 
 
 
@@ -64,6 +108,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IOtherService, OtherService>();
+builder.Services.AddScoped<IAsymmetricCryptographyService, AsymmetricCryptographyService>();
+builder.Services.AddScoped<IHybridCryptographyService, HybridCryptographyService>();
 
 // Email Services
 builder.Services.AddScoped<IEmailService, SMTPEmailService>();
@@ -123,7 +169,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowWebApp", policy =>
     {
         // đổi lại allowedOrigins sau khi xong
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -177,7 +223,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<PostgresDbContext>();
+        var context = services.GetRequiredService<AppDbContext>();
         Log.Information("Checking for pending migrations...");
         context.Database.Migrate();
         Log.Information("Database is up to date.");
